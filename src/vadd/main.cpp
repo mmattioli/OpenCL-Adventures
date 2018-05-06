@@ -43,7 +43,7 @@ int main() {
         cl::Program program(context, util::loadProgram("vadd.cl"), true);
 
         // Get the command queue for the device.
-        cl::CommandQueue queue(context);
+        cl::CommandQueue queue(context, CL_QUEUE_PROFILING_ENABLE);
 
         // Create the kernel functor.
         auto vadd = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer> (program, "vadd");
@@ -53,24 +53,25 @@ int main() {
         d_b = cl::Buffer(context, begin(h_b), end(h_b), true);
         d_c = cl::Buffer(context, begin(h_c), end(h_c), false);
 
-        auto start = std::chrono::high_resolution_clock::now();
-
         // Enqueue the kernel for execution on the device.
-        vadd(cl::EnqueueArgs(queue, cl::NDRange(LENGTH)), d_a, d_b, d_c);
+        cl::Event evt = vadd(cl::EnqueueArgs(queue, cl::NDRange(LENGTH)), d_a, d_b, d_c);
 
         // Wait for the kernel to complete execution.
         queue.finish();
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-
         // Copy the results from the device to the host.
         cl::copy(queue, d_c, begin(h_c), end(h_c));
 
+        // Determine the kernel execution time.
+        unsigned long deviceTimeEnd = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>();
+        unsigned long deviceTimeStart = evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+        double executionTimeMicroseconds = (deviceTimeEnd - deviceTimeStart) / 1000.000;
+
         for (int i = 0; i < LENGTH; i++) {
-            std::cout << "h_a: " << h_a[i] << " h_b " << h_b[i] << " h_c " << h_c[i] << std::endl;
+           std::cout << "h_a: " << h_a[i] << " h_b " << h_b[i] << " h_c " << h_c[i] << std::endl;
         }
-        std::cout   << "Completed in " << duration.count() << " microseconds using "
+
+        std::cout   << "Completed in " << executionTimeMicroseconds << " microseconds using "
                     << context.getInfo<CL_CONTEXT_DEVICES>()[0].getInfo<CL_DEVICE_NAME>()
                     << "." << std::endl;
 
