@@ -1,7 +1,7 @@
 OBJS = main.cpp
 OBJ_NAME = vadd.out
 INC = -I ../../include -I ../../util
-CCFLAGS = -std=c++11
+CCFLAGS = -std=c++17
 
 # Linking OpenCL is different on Apple platforms.
 ifeq ($(shell uname -s), Darwin)
