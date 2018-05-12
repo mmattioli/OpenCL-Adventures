@@ -23,15 +23,15 @@
 int main() {
 
     // Host data structures.
-    std::vector<float> h_a(LENGTH), h_b(LENGTH), h_c(LENGTH);
+    std::vector<float> hostVectorA(LENGTH), hostVectorB(LENGTH), hostVectorC(LENGTH);
 
     // Device data structures.
-    cl::Buffer d_a, d_b, d_c;
+    cl::Buffer deviceVectorA, deviceVectorB, deviceVectorC;
 
     // Fill vectors A and B with random float values.
     for (int i = 0; i < LENGTH; i++) {
-        h_a[i] = rand() / (float)RAND_MAX;
-        h_b[i] = rand() / (float)RAND_MAX;
+        hostVectorA[i] = rand() / (float)RAND_MAX;
+        hostVectorB[i] = rand() / (float)RAND_MAX;
     }
 
     try {
@@ -40,35 +40,40 @@ int main() {
         cl::Context context(DEVICE);
 
         // Load the kernel source and create a program object for the context.
-        cl::Program program(context, util::loadProgram("vadd.cl"), true);
+        cl::Program program(context, util::LoadProgram("vector_add.cl"), true);
 
         // Get the command queue for the device.
         cl::CommandQueue queue(context, CL_QUEUE_PROFILING_ENABLE);
 
         // Create the kernel functor.
-        auto vadd = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer> (program, "vadd");
+        auto vectorAdd = cl::make_kernel<cl::Buffer, cl::Buffer, cl::Buffer> (program, "VectorAdd");
 
         // Create the buffers. True indicates CL_MEM_READ_ONLY, False indicates CL_MEM_READ_WRITE.
-        d_a = cl::Buffer(context, begin(h_a), end(h_a), true);
-        d_b = cl::Buffer(context, begin(h_b), end(h_b), true);
-        d_c = cl::Buffer(context, begin(h_c), end(h_c), false);
+        deviceVectorA = cl::Buffer(context, begin(hostVectorA), end(hostVectorA), true);
+        deviceVectorB = cl::Buffer(context, begin(hostVectorB), end(hostVectorB), true);
+        deviceVectorC = cl::Buffer(context, begin(hostVectorC), end(hostVectorC), false);
 
         // Enqueue the kernel for execution on the device.
-        cl::Event evt = vadd(cl::EnqueueArgs(queue, cl::NDRange(LENGTH)), d_a, d_b, d_c);
+        cl::Event event = vectorAdd(cl::EnqueueArgs(queue, cl::NDRange(LENGTH)),
+                                    deviceVectorA,
+                                    deviceVectorB,
+                                    deviceVectorC);
 
         // Wait for the kernel to complete execution.
         queue.finish();
 
         // Copy the results from the device to the host.
-        cl::copy(queue, d_c, begin(h_c), end(h_c));
+        cl::copy(queue, deviceVectorC, begin(hostVectorC), end(hostVectorC));
 
         // Determine the kernel execution time.
-        unsigned long deviceTimeEnd = evt.getProfilingInfo<CL_PROFILING_COMMAND_END>();
-        unsigned long deviceTimeStart = evt.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+        unsigned long deviceTimeEnd = event.getProfilingInfo<CL_PROFILING_COMMAND_END>();
+        unsigned long deviceTimeStart = event.getProfilingInfo<CL_PROFILING_COMMAND_START>();
         double executionTimeMicroseconds = (deviceTimeEnd - deviceTimeStart) / 1000.000;
 
         for (int i = 0; i < LENGTH; i++) {
-           std::cout << "h_a: " << h_a[i] << " h_b " << h_b[i] << " h_c " << h_c[i] << std::endl;
+           std::cout << "hostVectorA: " << hostVectorA[i] <<
+                        " hostVectorB " << hostVectorB[i] <<
+                        " hostVectorC " << hostVectorC[i] << std::endl;
         }
 
         std::cout   << "Completed in " << executionTimeMicroseconds << " microseconds using "

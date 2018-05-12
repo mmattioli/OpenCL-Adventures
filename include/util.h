@@ -16,15 +16,15 @@ namespace util {
     /*
      * Used to load kernel source files.
      */
-    inline std::string loadProgram(std::string input) {
-        std::ifstream stream(input.c_str());
-        if (!stream.is_open()) {
-            std::cerr << "Cannot open file: " << input << std::endl;
+    inline std::string LoadProgram(std::string fileName) {
+        std::ifstream file(fileName.c_str());
+        if (!file.is_open()) {
+            std::cerr << "Cannot open file: " << fileName << std::endl;
             exit(1);
         }
-        return std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
+        return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
     }
-    
+
 }
 
 #endif

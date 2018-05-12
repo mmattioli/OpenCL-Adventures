@@ -9,7 +9,7 @@
  * Simple vector addition.
  * C = A + B
  */
-__kernel void vadd( __global float* a, __global float* b, __global float* c) {
+kernel void VectorAdd(global float* a, global float* b, global float* c) {
 
     // Get the current global work-item ID.
     size_t id = get_global_id(0);
